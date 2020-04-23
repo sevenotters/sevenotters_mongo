@@ -1,6 +1,7 @@
 defmodule SevenottersMongo.Storage do
   @moduledoc false
 
+  require Logger
   @behaviour SevenottersPersistence.Storage
 
   @bson_value_format ~r/^[A-Fa-f0-9\-]{24}$/
@@ -9,6 +10,9 @@ defmodule SevenottersMongo.Storage do
   def start_link(opts \\ []) do
     Mongo.start_link(opts ++ [name: __MODULE__, pool_size: @pool_size])
   end
+
+  @spec initialize(String.t()) :: any
+  def initialize(_collection), do: nil
 
   @spec insert(String.t(), Map.t()) :: any
   def insert(collection, value) do
@@ -64,6 +68,9 @@ defmodule SevenottersMongo.Storage do
 
   @spec type_expression([String.t()]) :: any
   def type_expression(types), do: %{type: %{"$in" => types}}
+
+  @spec correlation_id_expression(String.t()) :: any
+  def correlation_id_expression(correlation_id), do: %{correlation_id: correlation_id}
 
   @spec calculate_max(List.t(), String.t()) :: Int.t()
   defp calculate_max([], _field), do: 0
