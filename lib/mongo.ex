@@ -49,9 +49,27 @@ defmodule SevenottersMongo.Storage do
     |> calculate_max(Atom.to_string(field))
   end
 
+  @spec content(String.t()) :: List.t()
+  def content(collection) do
+    Mongo.find(__MODULE__, collection, %{}, sort: %{})
+    |> Enum.to_list()
+  end
+
   @spec content_of(String.t(), Map.t(), Map.t()) :: List.t()
   def content_of(collection, filter, sort) do
     Mongo.find(__MODULE__, collection, filter, sort: sort)
+    |> Enum.to_list()
+  end
+
+  @spec content_by_correlation_id(String.t(), String.t(), Map.t()) :: List.t()
+  def content_by_correlation_id(collection, correlation_id, sort) do
+    Mongo.find(__MODULE__, collection, %{correlation_id: correlation_id}, sort: sort)
+    |> Enum.to_list()
+  end
+
+  @spec content_by_types(String.t(), [String.t()], Map.t()) :: List.t()
+  def content_by_types(collection, types, sort) do
+    Mongo.find(__MODULE__, collection, %{type: %{"$in" => types}}, sort: sort)
     |> Enum.to_list()
   end
 
@@ -65,12 +83,6 @@ defmodule SevenottersMongo.Storage do
 
   @spec sort_expression() :: any
   def sort_expression(), do: %{counter: 1}
-
-  @spec type_expression([String.t()]) :: any
-  def type_expression(types), do: %{type: %{"$in" => types}}
-
-  @spec correlation_id_expression(String.t()) :: any
-  def correlation_id_expression(correlation_id), do: %{correlation_id: correlation_id}
 
   @spec calculate_max(List.t(), String.t()) :: Int.t()
   defp calculate_max([], _field), do: 0
