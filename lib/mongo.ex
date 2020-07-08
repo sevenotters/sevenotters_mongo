@@ -41,7 +41,6 @@ defmodule SevenottersMongo.Storage do
 
   @spec max_in_collection(bitstring, atom) :: integer
   def max_in_collection(collection, field) do
-    IO.inspect collection
     Mongo.find(
       __MODULE__,
       collection,
