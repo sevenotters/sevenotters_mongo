@@ -2,7 +2,7 @@ defmodule SevenottersMongo.Storage do
   @moduledoc false
 
   require Logger
-  @behaviour SevenottersPersistence.Storage
+#  @behaviour Seven.Data.PersistenceBehaviour
 
   @bson_value_format ~r/^[A-Fa-f0-9\-]{24}$/
   @pool_size 10
@@ -28,10 +28,20 @@ defmodule SevenottersMongo.Storage do
     {:ok, _id} = Mongo.update_one(__MODULE__, @snapshots, filter, %{"$set": value}, upsert: true)
   end
 
+  @spec get_snapshot(bitstring) :: map | nil
+  def get_snapshot(correlation_id) do
+    Mongo.find_one(__MODULE__, @snapshots, %{correlation_id: correlation_id})
+    |> atomize()
+  end
+
+  defp atomize(nil), do: nil
+  defp atomize(entities) when is_list(entities), do: entities |> Enum.map(fn s -> AtomicMap.convert(s, safe: false) end)
+  defp atomize(entity), do: AtomicMap.convert(entity, safe: false)
+
   @spec new_id :: any
   def new_id, do: Mongo.object_id()
 
-  @callback new_printable_id :: bitstring
+  @spec new_printable_id :: bitstring
   def new_printable_id, do: Mongo.object_id() |> BSON.ObjectId.encode!()
 
   @spec printable_id(any) :: bitstring
@@ -71,12 +81,18 @@ defmodule SevenottersMongo.Storage do
   def snapshots() do
     Mongo.find(__MODULE__, @snapshots, %{}, sort: %{}) # TODO: streaming with cursor?
     |> Enum.to_list()
+    |> atomize()
   end
 
-  @spec events_by_correlation_id(bitstring) :: [map]
-  def events_by_correlation_id(correlation_id) do
-    Mongo.find(__MODULE__, @events, %{correlation_id: correlation_id}, sort: %{counter: 1})
+  @spec events_by_correlation_id(bitstring, integer) :: [map]
+  def events_by_correlation_id(correlation_id, after_counter) do
+    Mongo.find(__MODULE__, @events, %{correlation_id: correlation_id, counter: %{"$gt" => after_counter}}, sort: %{counter: 1})
     |> Enum.to_list()
+  end
+
+  @spec event_by_id(bitstring) :: map
+  def event_by_id(id) do
+    Mongo.find_one(__MODULE__, @events, %{id: id}) |> atomize()
   end
 
   @spec events_by_types([bitstring]) :: [map]
