@@ -95,9 +95,9 @@ defmodule SevenottersMongo.Storage do
     Mongo.find_one(__MODULE__, @events, %{id: id}) |> atomize()
   end
 
-  @spec events_by_types([bitstring]) :: [map]
-  def events_by_types(types) do
-    Mongo.find(__MODULE__, @events, %{type: %{"$in" => types}}, sort: %{counter: 1})
+  @spec events_by_types([bitstring], integer) :: [map]
+  def events_by_types(types, after_counter) do
+    Mongo.find(__MODULE__, @events, %{type: %{"$in" => types}, counter: %{"$gt" => after_counter}}, sort: %{counter: 1})
     |> Enum.to_list()
   end
 
