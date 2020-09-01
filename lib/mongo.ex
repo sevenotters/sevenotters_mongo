@@ -9,6 +9,7 @@ defmodule SevenottersMongo.Storage do
 
   @events "events"
   @snapshots "snapshots"
+  @processes "processes"
 
   def start_link(opts \\ []) do
     Mongo.start_link(opts ++ [name: __MODULE__, pool_size: @pool_size])
@@ -22,15 +23,27 @@ defmodule SevenottersMongo.Storage do
     {:ok, _id} = Mongo.insert_one(__MODULE__, @events, value)
   end
 
-  @spec upsert_snapshot(map, map) :: any
+  @spec upsert_snapshot(bitstring, map) :: any
   def upsert_snapshot(correlation_id, value) do
     filter = %{correlation_id: correlation_id}
     {:ok, _id} = Mongo.update_one(__MODULE__, @snapshots, filter, %{"$set": value}, upsert: true)
   end
 
+  @spec upsert_process(bitstring, map) :: any
+  def upsert_process(process_id, value) do
+    filter = %{process_id: process_id}
+    {:ok, _id} = Mongo.update_one(__MODULE__, @processes, filter, %{"$set": value}, upsert: true)
+  end
+
   @spec get_snapshot(bitstring) :: map | nil
   def get_snapshot(correlation_id) do
     Mongo.find_one(__MODULE__, @snapshots, %{correlation_id: correlation_id})
+    |> atomize()
+  end
+
+  @spec get_process(bitstring) :: map | nil
+  def get_process(process_id) do
+    Mongo.find_one(__MODULE__, @processes, %{process_id: process_id})
     |> atomize()
   end
 
@@ -84,6 +97,13 @@ defmodule SevenottersMongo.Storage do
     |> atomize()
   end
 
+  @spec processes() :: [map]
+  def processes() do
+    Mongo.find(__MODULE__, @processes, %{}, sort: %{}) # TODO: streaming with cursor?
+    |> Enum.to_list()
+    |> atomize()
+  end
+
   @spec events_by_correlation_id(bitstring, integer) :: [map]
   def events_by_correlation_id(correlation_id, after_counter) do
     Mongo.find(__MODULE__, @events, %{correlation_id: correlation_id, counter: %{"$gt" => after_counter}}, sort: %{counter: 1})
@@ -109,6 +129,11 @@ defmodule SevenottersMongo.Storage do
   @spec drop_snapshots() :: any
   def drop_snapshots() do
     Mongo.command(__MODULE__, %{:drop => @snapshots}, pool: DBConnection.Poolboy)
+  end
+
+  @spec drop_processes() :: any
+  def drop_processes() do
+    Mongo.command(__MODULE__, %{:drop => @processes}, pool: DBConnection.Poolboy)
   end
 
   #
