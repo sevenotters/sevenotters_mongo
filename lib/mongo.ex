@@ -136,6 +136,13 @@ defmodule SevenottersMongo.Storage do
     Mongo.command(__MODULE__, %{:drop => @processes}, pool: DBConnection.Poolboy)
   end
 
+  @callback processes_id_by_status(bitstring) :: [map]
+  def processes_id_by_status(status) do
+    Mongo.find(__MODULE__, @processes, %{status: status}, projection: %{process_id: 1})
+    |> Enum.to_list()
+    |> Enum.map(fn p -> p["process_id"] end)
+  end
+
   #
   # Privates
   #
