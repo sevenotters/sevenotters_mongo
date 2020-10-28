@@ -47,10 +47,6 @@ defmodule SevenottersMongo.Storage do
     |> atomize()
   end
 
-  defp atomize(nil), do: nil
-  defp atomize(entities) when is_list(entities), do: entities |> Enum.map(fn s -> AtomicMap.convert(s, safe: false) end)
-  defp atomize(entity), do: AtomicMap.convert(entity, safe: false)
-
   @spec new_id :: any
   def new_id, do: Mongo.object_id()
 
@@ -146,6 +142,11 @@ defmodule SevenottersMongo.Storage do
   #
   # Privates
   #
+
+  defp atomize(nil), do: nil
+  defp atomize(entities) when is_list(entities), do: entities |> Enum.map(fn s -> AtomicMap.convert(s, safe: false) end)
+  defp atomize(entity), do: AtomicMap.convert(entity, safe: false)
+
   @spec calculate_max([map], bitstring) :: integer
   defp calculate_max([], _field), do: 0
   defp calculate_max([e], field), do: e[field]
