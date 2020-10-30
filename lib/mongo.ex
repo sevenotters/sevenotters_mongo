@@ -103,7 +103,6 @@ defmodule SevenottersMongo.Storage do
   @spec events_by_correlation_id(bitstring, integer) :: [map]
   def events_by_correlation_id(correlation_id, after_counter) do
     Mongo.find(__MODULE__, @events, %{correlation_id: correlation_id, counter: %{"$gt" => after_counter}}, sort: %{counter: 1})
-    |> Enum.to_list()
   end
 
   @spec event_by_id(bitstring) :: map
@@ -114,7 +113,6 @@ defmodule SevenottersMongo.Storage do
   @spec events_by_types([bitstring], integer) :: [map]
   def events_by_types(types, after_counter) do
     Mongo.find(__MODULE__, @events, %{type: %{"$in" => types}, counter: %{"$gt" => after_counter}}, sort: %{counter: 1})
-    |> Enum.to_list()
   end
 
   @spec drop_events() :: any
@@ -138,6 +136,9 @@ defmodule SevenottersMongo.Storage do
     |> Enum.to_list()
     |> Enum.map(fn p -> p["process_id"] end)
   end
+
+  @callback stream_to_list(any) :: [map]
+  def stream_to_list(stream), do: Enum.to_list(stream)
 
   #
   # Privates
